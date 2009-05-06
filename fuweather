@@ -1,0 +1,55 @@
+#!/bin/sh
+# 
+# fuweather
+# Copyright (c) 2009 Marcus Carlsson <carlsson.marcus@gmail.com> (http://xintron.se)
+# 
+# "THE BEER-WARE LICENSE" (Revision 42):
+# <carlsson.marcus@gmail.com> wrote this file. As long as you retain this notice you
+# can do whatever you want with this stuff. If we meet some day, and you think
+# this stuff is worth it, you can buy me a beer in return. Marcus Carlsson
+
+VERSION='0.2'
+IFS=''
+HELP="fuweather
+	-h, --help \t shows this help information
+	-v, --version \t output version information and exit\n
+	Usage: `basename $0` [city]
+	Example: `basename $0` stockholm
+	Will give you the current weather in Stockholm and a weather forecast for the upcoming days."
+
+
+### Check the arguments and output the correct command
+if [ ! $# -eq 0 ]; then
+	case "$1" in  
+		'--help'|'-h')
+		echo -e $HELP
+			exit 0
+		;;
+		'--version' | '-v') 
+			echo -e "fuweather v $VERSION"
+			exit 0
+		;;
+		*)
+			CITY=$1
+		;;
+	esac
+else
+	echo $HELP
+	exit 0
+fi
+
+### We have a city, fetch the info
+if [ $CITY != '' ]; then
+	### Dump the city weather to a variable
+	WEATHER=$(links -dump "http://www.thefuckingweather.com/?zipcode=$CITY&CELSIUS=yes" | head -n 17 | sed -e '7,11d' | sed 's/DEG/ C/')
+
+	### Check if we got a valid output
+	if [ `echo $WEATHER | grep -c "WRONG FUCKING ZIP"` -eq 1 ]; then
+		echo 'Error!
+	It was not possible to fetch the current weather in ['$CITY']. Please try again or select another city.'
+		exit 0
+	else
+		echo $WEATHER
+		exit 0
+	fi
+fi
