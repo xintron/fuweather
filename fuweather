@@ -9,7 +9,7 @@
 # this stuff is worth it, you can buy me a beer in return. Marcus Carlsson
 
 VERSION='0.2.7'
-TEMP='yes'
+TEMP='&CELSIUS=yes'
 IFS=''
 HELP="fuweather
 	Usage: `basename $0` [city]
@@ -40,7 +40,7 @@ if [ ! $# -eq 0 ]; then
 				else
 					### We want fahrenhiet instead of celcius
 					if [ $2 == '0' ]; then
-						TEMP='no'
+						TEMP=''
 					fi
 					shift
 					shift
@@ -57,12 +57,10 @@ else
 	exit 0
 fi
 
-echo $CITY
-
 ### We have a city, fetch the info
 if [ $CITY ]; then
 	### Dump the city weather to a variable
-	WEATHER=$(links -dump "http://www.thefuckingweather.com/?zipcode=$CITY&CELSIUS=$TEMP" | head -n 17 | sed -e '7,11d' | sed 's/DEG/°/')
+	WEATHER=$(links -dump "http://www.thefuckingweather.com/?zipcode=$CITY$TEMP" | head -n 17 | sed -e '7,11d' | sed 's/DEG/°/')
 
 	### Check if we got a valid output
 	if [ `echo $WEATHER | grep -c "WRONG FUCKING ZIP"` -eq 1 ]; then
