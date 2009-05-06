@@ -8,40 +8,61 @@
 # can do whatever you want with this stuff. If we meet some day, and you think
 # this stuff is worth it, you can buy me a beer in return. Marcus Carlsson
 
-VERSION='0.2'
+VERSION='0.2.7'
+TEMP='yes'
 IFS=''
 HELP="fuweather
-	-h, --help \t shows this help information
-	-v, --version \t output version information and exit\n
 	Usage: `basename $0` [city]
+	-h, --help \t\t shows this help information
+	-t, --temperature \t 1 for celcius (default), 0 for fahrenheit
+	-v, --version \t\t output version information and exit\n
 	Example: `basename $0` stockholm
 	Will give you the current weather in Stockholm and a weather forecast for the upcoming days."
 
-
 ### Check the arguments and output the correct command
 if [ ! $# -eq 0 ]; then
-	case "$1" in  
-		'--help'|'-h')
-		echo -e $HELP
-			exit 0
-		;;
-		'--version' | '-v') 
-			echo -e "fuweather v $VERSION"
-			exit 0
-		;;
-		*)
-			CITY=$1
-		;;
-	esac
+	### Cycle through the arguments
+	while (($#)); do
+		case "$1" in  
+			'--help'|'-h')
+			echo -e $HELP
+				exit 0
+			;;
+			'--version' | '-v') 
+				echo -e "fuweather v $VERSION"
+				exit 0
+			;;
+			'--temperature'|'-t')
+				### Missing temperature-argument
+				if [[ -z $2 || $2 -gt '1' ]]; then
+					echo 'Temperature missing argument. Example: '`basename $0`' -t 0|1 [city]'
+					exit 0
+				else
+					### We want fahrenhiet instead of celcius
+					if [ $2 == '0' ]; then
+						TEMP='no'
+					fi
+					shift
+					shift
+				fi
+			;;
+			*)
+				CITY=$1
+				shift
+			;;
+		esac
+	done
 else
-	echo $HELP
+	echo -e $HELP
 	exit 0
 fi
 
+echo $CITY
+
 ### We have a city, fetch the info
-if [ $CITY != '' ]; then
+if [ $CITY ]; then
 	### Dump the city weather to a variable
-	WEATHER=$(links -dump "http://www.thefuckingweather.com/?zipcode=$CITY&CELSIUS=yes" | head -n 17 | sed -e '7,11d' | sed 's/DEG/ C/')
+	WEATHER=$(links -dump "http://www.thefuckingweather.com/?zipcode=$CITY&CELSIUS=$TEMP" | head -n 17 | sed -e '7,11d' | sed 's/DEG/°/')
 
 	### Check if we got a valid output
 	if [ `echo $WEATHER | grep -c "WRONG FUCKING ZIP"` -eq 1 ]; then
