@@ -8,21 +8,36 @@
 # can do whatever you want with this stuff. If we meet some day, and you think
 # this stuff is worth it, you can buy me a beer in return. Marcus Carlsson
 
-VERSION='0.2.7'
-TEMP='&CELSIUS=yes'
+VERSION='0.2.9'
+temp='&CELSIUS=yes'
 IFS=''
 HELP="fuweather
 	Usage: `basename $0` [city]
 	-h, --help \t\t shows this help information
-	-t, --temperature \t 1 for celcius (default), 0 for fahrenheit
+	-t, --temperature \t 1 for Celsius (default), 0 for Fahrenheit
 	-v, --version \t\t output version information and exit\n
 	Example: `basename $0` stockholm
 	Will give you the current weather in Stockholm and a weather forecast for the upcoming days."
 
+### We got a configuration-file. Load the settings and use them
+if [ -f $HOME/.fuweatherrc ]; then
+	. $HOME/.fuweatherrc
+	if [ -n $temp ]; then
+		case $(echo $temp | tr "[:upper:]" "[:lower:]") in
+			fahrenheit|f|0)
+				temp=''
+			;;
+			*)
+				temp='&CELSIUS=yes'
+			;;
+		esac
+	fi
+fi
+
 ### Check the arguments and output the correct command
-if [ ! $# -eq 0 ]; then
+if [ ! -z $1 ]; then
 	### Cycle through the arguments
-	while (($#)); do
+	while [ ! -z $1 ]; do
 		case "$1" in  
 			'--help'|'-h')
 			echo -e $HELP
@@ -34,39 +49,39 @@ if [ ! $# -eq 0 ]; then
 			;;
 			'--temperature'|'-t')
 				### Missing temperature-argument
-				if [[ -z $2 || $2 -gt '1' ]]; then
+				if [ -z $2 ]; then
 					echo 'Temperature missing argument. Example: '`basename $0`' -t 0|1 [city]'
 					exit 0
 				else
-					### We want fahrenhiet instead of celcius
-					if [ $2 == '0' ]; then
-						TEMP=''
+					### We want fahrenhiet instead of celsius
+					if [ $2 == '0' ] || [ $2 == 'fahrenheit' ] || [ $2 == 'f' ]; then
+						temp=''
 					fi
 					shift
 					shift
 				fi
 			;;
 			*)
-				CITY=$1
+				city=$1
 				shift
 			;;
 		esac
 	done
-else
+elif [ ! $city ]; then
 	echo -e $HELP
 	exit 0
 fi
 
 ### We have a city, fetch the info
-if [ $CITY ]; then
+if [ $city ]; then
 	### Dump the city weather to a variable
-	WEATHER=$(links -dump "http://www.thefuckingweather.com/?zipcode=$CITY$TEMP" | head -n 17 | sed -e '7,11d' | sed 's/DEG/°/')
+	WEATHER=$(links -dump "http://www.thefuckingweather.com/?zipcode=$city$temp" | head -n 17 | sed -e '7,11d' | sed 's/DEG/°/')
 
 	### Check if we got a valid output
 	if [ `echo $WEATHER | grep -c "WRONG FUCKING ZIP"` -eq 1 ]; then
 		echo 'Error!
-	It was not possible to fetch the current weather in ['$CITY']. Please try again or select another city.'
-		exit 0
+	It was not possible to fetch the current weather in ['$city']. Please try again or select another city.'
+		exit 1
 	else
 		echo $WEATHER
 		exit 0
